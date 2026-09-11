@@ -200,7 +200,7 @@ class TestChineseTagScrubbing:
 
     def test_chinese_tag_split_across_deltas(self) -> None:
         s = StreamingThinkScrubber()
-        assert _drive(s, ["<思考>", "hidden reasoning", "</think>", "visible"]) == "visible"
+        assert _drive(s, ["<思", "考>", "hidden reasoning", "</思", "考>", "visible"]) == "visible"
 
     def test_chinese_think_open_only_drops_all(self) -> None:
         s = StreamingThinkScrubber()
