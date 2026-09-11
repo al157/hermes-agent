@@ -40,7 +40,7 @@ def _media_caption_split(text, media_files, *, max_caption_len):
 _URL_SECRET_QUERY_RE = re.compile(
     r"([?&](?:access_token|api[_-]?key|auth[_-]?token|token|signature|sig)=)([^&#\s]+)", re.IGNORECASE)
 _GENERIC_SECRET_ASSIGN_RE = re.compile(
-    r"\b(access_token|api[_-]?key|auth[_-]?token|signature|sig)\s*=\s*([^\s,;]+)", re.IGNORECASE)
+    r"\b(access_token|api[_-]?key|auth[_-]?token|signature|sig)\s*=\s*([^\s,;&?#]+)", re.IGNORECASE)
 
 
 def _sanitize_error_text(text) -> str:
