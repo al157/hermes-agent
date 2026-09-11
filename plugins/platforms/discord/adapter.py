@@ -6847,10 +6847,64 @@ def _derive_forum_thread_name(message: str) -> str:
 
 
 def _standalone_sanitize_error(text) -> str:
-    """Local copy of tools.send_message_tool._sanitize_error_text (strips bot tokens); avoids hard dep."""
+    """Local copy of tools.send_message_tool._sanitize_error_text (strips credentials); avoids hard dep."""
     s = str(text)
     import re as _re_san
-    return _re_san.sub(r"(Authorization:\s*Bot\s+)\S+", r"\1***", s, flags=_re_san.IGNORECASE)
+
+    # Auth headers: mask the ENTIRE value (scheme + credential) after the header
+    # name, regardless of which auth scheme is used (Bot/Bearer/Basic/Digest/
+    # Negotiate/custom). Anchored on the header name + separator, never on a
+    # specific scheme literal. Each whitespace-separated chunk of the value
+    # becomes its own redaction marker, so sibling secrets on the same line
+    # (e.g. a trailing key=...) are each masked instead of being swallowed
+    # into a single ***.
+    s = _re_san.sub(
+        r"(?i)((?:proxy-)?authorization\s*:\s*)([^\r\n]+)",
+        lambda m: m.group(1) + "".join(
+            "***" if part.strip() else part
+            for part in _re_san.split(r"(\s+)", m.group(2))
+        ),
+        s,
+    )
+    # Bare auth scheme tokens (RFC 7235 scheme word followed by a credential),
+    # for values that surface without the header name prefix.
+    # Require the credential to actually look like one (>=8 chars, and not a
+    # plain lowercase English word) so ordinary prose such as "Basic plan" or
+    # "weekly digest of changes" is never mangled.
+    s = _re_san.sub(
+        r"(?i)(\b(?:bearer|basic|digest|negotiate|ntlm)\s+)(?!(?-i:[a-z]+\b))[A-Za-z0-9._~+/=-]{8,}",
+        r"\1***", s,
+    )
+    # API key headers: mask the whole value after the header name.
+    s = _re_san.sub(
+        r"(?i)(x-api-key\s*:\s*)[^\r\n]+",
+        r"\1***", s,
+    )
+    # Long sk- prefixed keys (>=20 chars) are credentials; short sk- strings
+    # are left alone.
+    s = _re_san.sub(
+        r"(?i)\bsk-[a-z0-9_-]{20,}",
+        "***", s,
+    )
+    # URL userinfo basic-auth: //user:pass@host -> mask the password portion.
+    # Requires an explicit 'user:pass@' shape; plain //host/path URLs are not
+    # matched, so they pass through untouched.
+    s = _re_san.sub(
+        r"(?i)((?:https?|ftp)://[^/\s:@]+:)[^@\s]*@",
+        r"\1***@", s,
+    )
+    # URL query parameters carrying secrets: mask the value, keep the key and
+    # any non-secret sibling params.
+    s = _re_san.sub(
+        r"(?i)([?&](?:access_token|api[_-]?key|auth[_-]?token|key|token|signature|sig)=)[^&#\s]+",
+        r"\1***", s,
+    )
+    # Generic key=value assignments for known secret parameter names.
+    s = _re_san.sub(
+        r"(?i)\b(access_token|api[_-]?key|auth[_-]?token|key|token|signature|sig)\s*=\s*[^\s,;&?#]+",
+        r"\1=***", s,
+    )
+    return s
 
 
 def _standalone_close_response(resp: Any) -> None:
