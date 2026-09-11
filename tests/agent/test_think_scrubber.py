@@ -189,3 +189,23 @@ class TestRealisticStreaming:
         s = StreamingThinkScrubber()
         deltas = ["Hello ", "world ", "how ", "are ", "you?"]
         assert _drive(s, deltas) == "Hello world how are you?"
+
+
+class TestChineseTagScrubbing:
+    """Chinese reasoning tags must be stripped identically to English ones."""
+
+    def test_closed_chinese_tag_stripped(self) -> None:
+        s = StreamingThinkScrubber()
+        assert _drive(s, ["<推理>secret</推理>visible"]) == "visible"
+
+    def test_chinese_tag_split_across_deltas(self) -> None:
+        s = StreamingThinkScrubber()
+        assert _drive(s, ["<思考>", "hidden reasoning", "</think>", "visible"]) == "visible"
+
+    def test_chinese_think_open_only_drops_all(self) -> None:
+        s = StreamingThinkScrubber()
+        assert _drive(s, ["<分析>secret text with no close"]) == ""
+
+    def test_orphan_chinese_close_stripped(self) -> None:
+        s = StreamingThinkScrubber()
+        assert _drive(s, ["Hello</推理过程>world"]) == "Helloworld"

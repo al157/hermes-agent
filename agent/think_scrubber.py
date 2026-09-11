@@ -24,7 +24,7 @@ class StreamingThinkScrubber:
     was emitted yet — decides whether an open tag at buffer position 0 sits at a block boundary).
     """
 
-    _OPEN_TAG_NAMES: Tuple[str, ...] = ("think", "thinking", "reasoning", "thought", "REASONING_SCRATCHPAD")
+    _OPEN_TAG_NAMES: Tuple[str, ...] = ("think", "thinking", "reasoning", "thought", "REASONING_SCRATCHPAD", "推理", "思考", "分析", "推理过程")
 
     # Lowercased literal tags so the hot path does string ops, not regex per feed().
     _OPEN_TAGS: Tuple[str, ...] = tuple(f"<{name.lower()}>" for name in _OPEN_TAG_NAMES)
